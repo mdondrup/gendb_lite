@@ -8,7 +8,17 @@ use Drupal\Core\Controller\ControllerBase;
  */
 class ExampleController extends ControllerBase {
 
-  /**
+private function gene_count() {
+
+  $sql = "SELECT count(*) FROM chado.feature AS f LEFT JOIN chado.f_type AS t ON f.type_id = t.type_id WHERE t.type = 'gene'";
+  $result = \Drupal::database()->query($sql);
+  return($result)
+    
+  
+  
+}
+  
+  /** 
    * Returns a simple page.
    *
    * @return array
@@ -16,7 +26,7 @@ class ExampleController extends ControllerBase {
    */
   public function myPage() {
     return [
-      '#markup' => 'Checking for genes in Chado...',
+      '#markup' => 'Checking for genes in Chado...</br> Found '.gene_count().' genes.',
     ];
   }
 
