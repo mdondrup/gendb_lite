@@ -1,0 +1,6 @@
+name: GenDB Lite 
+description: Creates genomic we pages from chado
+package: Custom
+
+type: module
+core_version_requirement: ^10
