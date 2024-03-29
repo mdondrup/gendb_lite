@@ -23,7 +23,7 @@ private function gene_count() {
    */
   public function myPage() {
     return [
-      '#markup' => 'Checking for genes in Chado...</br> Found '.gene_count().' genes.',
+      '#markup' => 'Checking for genes in Chado...</br> Found '. this.gene_count() .' genes.',
     ];
   }
 
