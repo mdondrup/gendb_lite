@@ -1,0 +1,7 @@
+gendb_lite.my_page:
+  path: '/gendb_lite/page'
+  defaults:
+    _controller: '\Drupal\gendb_lite\Controller\ExampleController::myPage'
+    _title: 'My first page in D10'
+  requirements:
+    _permission: 'access content'
