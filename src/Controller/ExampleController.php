@@ -3,10 +3,6 @@ namespace Drupal\gendb_lite\Controller;
 
 use Drupal\Core\Controller\ControllerBase;
 
-/**
- * Provides route responses for the Example module.
- */
-class ExampleController extends ControllerBase {
 
  function gene_count() {
 
@@ -14,6 +10,14 @@ class ExampleController extends ControllerBase {
   $result = \Drupal::database()->query($sql);
   return($result);
 }
+
+
+/**
+ * Provides route responses for the Example module.
+ */
+class ExampleController extends ControllerBase {
+
+
   
   /** 
    * Returns a simple page.
