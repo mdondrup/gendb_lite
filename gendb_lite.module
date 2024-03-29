@@ -1,0 +1,28 @@
+<?php
+
+use Drupal\Core\Routing\RouteMatchInterface;
+
+/**
+ * Implements hook_help().
+ */
+function gendb_lite_help($route_name, RouteMatchInterface $route_match) {
+  switch ($route_name) {
+    case 'help.page.gendb_lite':
+      $output = '';
+      $output .= '<h2>' . t('Lorem ipsum generator for Drupal.') . '</h2>';
+      $output .= '<h3>' . t('Instructions') . '</h3>';
+      $output .= '<p>' . t('Lorem ipsum dolor sit amet... <em>Just kidding!</em>') . '</p>';
+      $output .= '<p>' . t('If you\'re reading this, you\'ve already installed the module either via <code>composer require drupal/loremipsum</code> or directly downloading it (which <em>should</em> be safe) and have already enabled it in <strong>/admin/modules</strong>.') . '</p>';
+      $output .= '<p>' . t('Then, visit <strong>/admin/config/development/loremipsum</strong> and enter your own set of phrases to build random-generated text (or go with the default Lorem ipsum).') . '</p>';
+      $output .= '<p>' . t('Lastly, visit <strong>/loremipsum/generate/P/S</strong> where:') . '</p>';
+      $output .= '<ul>';
+      $output .= '<li>' . t('<strong>P</strong> is the number of <em>paragraphs</em>.') . '</li>';
+      $output .= '<li>' . t('<strong>S</strong> is the maximum number of <em>sentences</em>.') . '</li>';
+      $output .= '</ul>';
+      $output .= '<p>' . t('There is also a generator block in which you can choose how many paragraphs and phrases you want and it\'ll do the rest.') . '</p>';
+      $output .= '<p>' . t('If you need, there\'s also a specific <em>generate lorem ipsum</em> permission.') . '</p>';
+      $output .= '<h3>' . t('Attention') . '</h3>';
+      $output .= '<p>' . t('Most bugs have been ironed out, holes covered, features added. But this module is a work in progress. Please report bugs and suggestions, ok?') . '</p>';
+      return $output;
+  }
+}
