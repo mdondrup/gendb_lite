@@ -10,7 +10,7 @@ use Drupal\Core\Controller\ControllerBase;
   $query = \Drupal::database()->query($sql);
   
   
-  return($query->fetch()->count());
+  return($query->fetch()->count);
 }
 
 
