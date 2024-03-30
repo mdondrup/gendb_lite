@@ -6,7 +6,7 @@ use Drupal\Core\Controller\ControllerBase;
 
  function gene_count() {
 
-  $sql = "SELECT COUNT(*) FROM chado.feature AS f LEFT JOIN chado.f_type AS t ON f.type_id = t.type_id WHERE t.type = 'gene'";
+  $sql = "SELECT COUNT(DISTINCT f.feature_id) FROM chado.feature AS f LEFT JOIN chado.f_type AS t ON f.type_id = t.type_id WHERE t.type = 'gene'";
   $query = \Drupal::database()->query($sql);
   
   
