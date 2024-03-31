@@ -1,7 +1,16 @@
-gendb_lite.my_page:
+gendb_lite.page:
   path: '/gendb_lite/page'
   defaults:
-    _controller: '\Drupal\gendb_lite\Controller\ExampleController::myPage'
+    _controller: '\Drupal\gendb_lite\Controller\GenDBController::myPage'
     _title: 'Welcome to the GenDB Lite Module'
+  requirements:
+    _permission: 'access content'
+
+
+gendb_lite.list:
+  path: '/gendb_lite/featurelist'
+  defaults:
+    _title: 'List Features'
+    _controller: '\Drupal\gendb_lite\Controller\GenDBController::featureList'
   requirements:
     _permission: 'access content'
