@@ -14,3 +14,15 @@ gendb_lite.list:
     _controller: '\Drupal\gendb_lite\Controller\GenDBController::featureList'
   requirements:
     _permission: 'access content'
+
+
+gendb_lite.gene:
+  path: '/gendb_lite/gene/{id}'
+  defaults: 
+    _controller: '\Drupal\gendb_lite\Controller\GenDBController::geneInfo' 
+  requirements: 
+    _permission: 'access content' 
+  options:
+    parameters:
+      id:
+        type: int

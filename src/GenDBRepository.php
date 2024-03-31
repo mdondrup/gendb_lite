@@ -196,25 +196,39 @@ use Drupal\Core\StringTranslation\TranslationInterface;
    *
    * @see Drupal\Core\Database\Connection::select()
    */
-  public function load(array $entry = []) {
+  public function load(array $entry = [], array $header = []) {
     // Read all the fields from the dbtng_example table.
     $select = $this->connection
-      ->select('chado.feature', 'f');
-      // Add all the fields into our select query.
-      
+        ->select('chado.feature', 'f')->extend('Drupal\Core\Database\Query\TableSortExtender')
+        ->extend('Drupal\Core\Database\Query\PagerSelectExtender')->limit(10);     
 
     $select->join('chado.f_type', 't', 'f.type_id = t.type_id');
+      
       $select->addField('f', 'name');
       $select->addField('f', 'uniquename');
       $select->addField('t', 'type', 'type');
-
+      $select->addField('f', 'feature_id');
 
     // Add each field and value as a condition to this query.
     foreach ($entry as $field => $value) {
       $select->condition($field, $value);
     }
+    $select->orderByHeader($header);
     // Return the result in object format.
     return $select->execute()->fetchAll();
+  }
+
+  public function getFeatureInfoById(int $id) {
+
+      $select = $this->connection
+        ->select('chado.feature', 'f');
+      $select->join('chado.f_type', 't', 'f.type_id = t.type_id');
+      $select->addField('f', 'name');
+      $select->addField('f', 'uniquename');
+      $select->addField('t', 'type', 'type');
+      $select->addField('f', 'feature_id');
+      $select->condition('f.feature_id', $id);
+      return $select->execute()->fetch();
   }
 
   /**
