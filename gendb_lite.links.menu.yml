@@ -1,0 +1,16 @@
+gendb_lite.description:
+  title: GenDB Lite
+  route_name: gendb_lite.page
+  expanded: TRUE
+  weight: -10
+
+dbtng_example.page:
+  title: Overview
+  route_name: gendb_lite.page
+  weight: 0
+  parent: gendb_lite.description
+dbtng_example.list:
+  title: List
+  route_name: gendb_lite.list
+  weight: 0
+  parent: gendb_lite.description

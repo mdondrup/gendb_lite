@@ -5,6 +5,19 @@
 # follows official upstream conventions:
 # https://www.drupal.org/docs/develop/using-composer
 
+# -*- mode: gitignore; -*-
+
+*~
+\#*\#
+/.emacs.desktop
+/.emacs.desktop.lock
+*.elc
+auto-save-list
+tramp
+.\#*
+
+
+
 # Ignore configuration files that may contain sensitive information
 /web/sites/*/*settings*.php
 /web/sites/*/*services*.yml
