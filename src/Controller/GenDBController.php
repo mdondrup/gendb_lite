@@ -112,16 +112,10 @@ class GenDBController extends ControllerBase {
     return $content;
   }
 
-function hook__form_FORM_ID_alter(&$form,\Drupal\Core\Form\FormStateInterface 
-$form_state, $form_id) {
-//output your form structure to know what to target in the form array($form[])
-#kint( $form['title']);
-$form['title']['#disabled'] = TRUE;
 
-}
 
   
-  public function geneInfo(string $id) {
+  public function geneInfo(int $id) {
 
       $content = [];
        $rows = [];
@@ -129,6 +123,8 @@ $form['title']['#disabled'] = TRUE;
       [ 'data' => $this->t('Name') , 'field' => 'f.name'],
       [ 'data' => $this->t('Unique name'),'field' => 'f.uniquename'],
       [ 'data' => $this->t('Feature type'), 'field' => 't.type'],
+      
+      [ 'data' => $this->t('Organism')],
       ['feature_id']
     ];
 
@@ -137,9 +133,13 @@ $form['title']['#disabled'] = TRUE;
       $entry = $this->repository->getFeatureInfoById($id);
       // Sanitize each entry.
         $entry = array_map('Drupal\Component\Utility\Html::escape', (array) $entry);
-        #$url = Url::fromRoute('gendb_lite.gene', ['id' => $entry['feature_id']]);
-       
-        #$entry['name'] = Link::fromTextAndUrl($entry['name'], $url);
+        $url = Url::fromRoute('gendb_lite.default', ['chadotype' => 'organism', 'id' => $entry['organism_id']]);
+        $residues = $entry['residues'];       
+        $entry['organism'] = Link::fromTextAndUrl($entry['genus'].' '. $entry['species'], $url);
+        unset($entry['genus']);
+        unset($entry['species']);
+        unset($entry['organism_id']);
+        unset($entry['residues']);
         
         $rows[] = $entry;
         
@@ -154,23 +154,60 @@ $form['title']['#disabled'] = TRUE;
     $form = [];    
     $form['description'] = [
       '#type' => 'item',
-      '#markup' => $this->t('This basic example shows a single text input element and a submit button'),
+      '#markup' => $this->t('Display feature information'),
     ];
 
-    $form['title'] = [
+    $form['name'] = [
       '#type' => 'textfield',
       '#title' => $this->t('Name'),
       
       '#disabled' => 'disabled',
-      '#value' => $entry['name'],
+      '#value' => $entry['name'],      
+    ];
+   $form['residues'] = [
+      '#type' => 'textarea',
+      '#title' => $this->t('Residues'),
       
+      '#disabled' => 'disabled',
+      '#value' => $residues,      
+    ];
+     $form['sequence'] = [
+      '#type' => 'textarea',
+      '#title' => $this->t('Sequence from Alignment'),
+      
+      '#disabled' => 'disabled',
+      '#value' => var_export( $this->repository->getSeqRecursive($id), true),      
     ];
     $content['form'] = $form;
-        
-      return $content;
+    
+    return $content;
       
   }
 
+  
+
+
+  public function defaultController(string $chadotype, int $id) {
+
+      $content = [];
+      $rows = [];
+      $content['#markup'] = 'Looking up Chado content: '. $chadotype . " ". $id;
+      $entry = $this->repository->defaultLookup($chadotype, $id);
+
+            $entry = array_map('Drupal\Component\Utility\Html::escape', (array) $entry);
+
+      $rows[] = $entry;
+      #$content['#plain_text'] = var_dump($entry);
+
+      $content['table'] = [
+          '#type' => 'table',
+          '#header' => array_keys((array)$entry),
+          '#rows' => $rows,
+          '#empty' => $this->t('No entries available.'),
+    ];
+      
+      return $content;
+  }  
   
  
 }

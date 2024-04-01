@@ -26,3 +26,16 @@ gendb_lite.gene:
     parameters:
       id:
         type: int
+
+gendb_lite.default:
+  path: '/gendb_lite/default/{chadotype}/{id}'
+  defaults: 
+    _controller: '\Drupal\gendb_lite\Controller\GenDBController::defaultController' 
+  requirements: 
+    _permission: 'access content' 
+  options:
+    parameters:
+      id:
+        chadotype: string
+        type: int
+
