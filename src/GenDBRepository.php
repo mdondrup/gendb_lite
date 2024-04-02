@@ -53,78 +53,6 @@ class GenDBRepository {
         $this->setMessenger($messenger);
     }
 
-    /**
-     * Save an entry in the database.
-     *
-     * Exception handling is shown in this example. It could be simplified
-     * without the try/catch blocks, but since an insert will throw an exception
-     * and terminate your application if the exception is not handled, it is best
-     * to employ try/catch.
-     *
-     * @param array $entry
-     *   An array containing all the fields of the database record.
-     *
-     * @return int
-     *   The number of updated rows.
-     *
-     * @throws \Exception
-     *   When the database insert fails.
-     */
-    public function insert(array $entry) {
-        try {
-            $return_value = $this->connection->insert('dbtng_example')
-                ->fields($entry)
-                ->execute();
-        }
-        catch (\Exception $e) {
-            $this->messenger()->addMessage($this->t('Insert failed. Message = %message', [
-                '%message' => $e->getMessage(),
-            ]), 'error');
-        }
-        return $return_value ?? NULL;
-    }
-
-    /**
-     * Update an entry in the database.
-     *
-     * @param array $entry
-     *   An array containing all the fields of the item to be updated.
-     *
-     * @return int
-     *   The number of updated rows.
-     */
-    public function update(array $entry) {
-        try {
-            // Connection->update()...->execute() returns the number of rows updated.
-            $count = $this->connection->update('dbtng_example')
-                ->fields($entry)
-                ->condition('pid', $entry['pid'])
-                ->execute();
-        }
-        catch (\Exception $e) {
-            $this->messenger()->addMessage($this->t('Update failed. Message = %message, query= %query', [
-                '%message' => $e->getMessage(),
-                '%query' => $e->query_string,
-            ]
-            ), 'error');
-        }
-        return $count ?? 0;
-    }
-
-    /**
-     * Delete an entry from the database.
-     *
-     * @param array $entry
-     *   An array containing at least the person identifier 'pid' element of the
-     *   entry to delete.
-     *
-     * @see Drupal\Core\Database\Connection::delete()
-     */
-    public function delete(array $entry) {
-        $this->connection->delete('dbtng_example')
-            ->condition('pid', $entry['pid'])
-            ->execute();
-    }
 
     /**
      * Read from the database using a filter array.
@@ -210,8 +138,20 @@ class GenDBRepository {
         $select->addField('f', 'feature_id');
 
         // Add each field and value as a condition to this query.
+        $operator = '='; // default operator 
         foreach ($entry as $field => $value) {
-            $select->condition($field, $value);
+            if (is_array($value)) {
+                $operator = $value['operator'];
+                $value = $value['value'];
+            }
+            if ($value == '') {
+                continue; ## don't add a filter for empty values
+            }
+            if ($operator == 'contains') {
+                $value = "%$value%";
+                $operator = 'LIKE';
+            }
+            $select->condition($field, $value, $operator);
         }
         $select->orderByHeader($header);
         // Return the result in object format.
@@ -226,86 +166,86 @@ class GenDBRepository {
         $select->join('chado.organism', 'o', 'f.organism_id = o.organism_id');
         $select->addField('f', 'name');
         $select->addField('f', 'residues');
-                
+
         $select->addField('f', 'uniquename');
         $select->addField('t', 'type', 'type');
-        
+
         $select->addField('f', 'feature_id');
         $select->addField('o', 'genus');
         $select->addField('o', 'species');
-        $select->addField('o', 'organism_id');        
+        $select->addField('o', 'organism_id');
         $select->condition('f.feature_id', $id);
         return $select->execute()->fetch();
     }
-
-    /**
-     * Taken from: https://www.biophp.org/minitools/sequence_manipulation_and_data/
-     *
-    */
-
     
-    function Complement($seq){      
-        
-        // change the sequence to upper case
-        $seq = strtoupper ($seq);
-        // the system used to get the complementary sequence is simple but fas
-        $seq=str_replace("A", "t", $seq);
-        $seq=str_replace("T", "a", $seq);
-        $seq=str_replace("G", "c", $seq);
-        $seq=str_replace("C", "g", $seq);
-        $seq=str_replace("Y", "r", $seq);
-        $seq=str_replace("R", "y", $seq);
-        $seq=str_replace("W", "w", $seq);
-        $seq=str_replace("S", "s", $seq);
-        $seq=str_replace("K", "m", $seq);
-        $seq=str_replace("M", "k", $seq);
-        $seq=str_replace("D", "h", $seq);
-        $seq=str_replace("V", "b", $seq);
-        $seq=str_replace("H", "d", $seq);
-        $seq=str_replace("B", "v", $seq);
-        // change the sequence to upper case again for output
-        $seq = strtoupper ($seq);
+    /*
+     * Table taken from: https://www.biophp.org/minitools/sequence_manipulation_and_data/
+     * But allows to preserve lower case
+     */
+
+    function Complement($seq){
+
+        $comptable =  [
+            'A' => 'T',
+            'T' => 'A',
+            'G' => 'C',
+            'C' => 'G',
+            'Y' => 'R',
+            'W' => 'W',
+            'K' => 'M',
+            'M' => 'K',
+            'D' => 'H',
+            'V' => 'B',
+            'H' => 'D',
+            'B' => 'V',
+        ];
+        foreach ($comptable as $key => $value) {
+	        $comptable[strtolower($key)] = strtolower($value);
+        }
+    
+        $seq = strtr($seq, $comptable);
+       
         return $seq;
     }
 
-   
-    
+
+
 
     public function spliceSeq(string $seq, int $fid, int $sid) {
 
         $select = $this->connection
             ->select('chado.featureloc', 'l');
-        
+
         $select->fields('l');
         $select->condition('feature_id', $fid);
         $select->condition('srcfeature_id', $sid);
         $ranges = $select->execute()->fetchAll();
 
         $subseq = '';
-        
+
         foreach ($ranges as $range) {
             // suseq is 0-based
             $fmin = (int) $range->fmin; $fmax = (int) $range->fmax;
-            
+
             $substr = substr($seq, $fmin, $fmax - $fmin);
-           
+
             if ($range->strand < 0){
                 $substr = strrev($this->Complement($substr));
-                
+
             }
-            $subseq .= $substr;   
+            $subseq .= $substr;
 
         }
 
         return $subseq;
-        
+
     }
 
-    
+
     /**
      * Retrieve the sequence recursively from the source feature
      *
-    **/ 
+     **/
     public function getSeqRecursive(int $id) {
         // get the residues, if any
         $select = $this->connection
@@ -316,7 +256,7 @@ class GenDBRepository {
         #var_dump($entry);
         $residues = $entry['residues'];
         // Check if this feature has a featureloc entry
-         $select = $this->connection
+        $select = $this->connection
             ->select('chado.featureloc', 'l');
         $select->fields('l');
         $select->condition('l.feature_id', $id)->distinct()
@@ -330,13 +270,13 @@ class GenDBRepository {
         // We need to get the sequence of the source feature, hope it has residues
         $retarray = [];
         foreach ($entries as $entry) {
-            
+
             if ($entry->srcfeature_id) {
                 $srcseqs = $this->getSeqRecursive($entry->srcfeature_id);
                 // splice the sequences, one by one
                 foreach ($srcseqs as $sid => $sseq) {
                     $myseq = $this->spliceSeq($sseq, $id, $sid);
-                    $retarray[$sid] = $myseq;   
+                    $retarray[$sid] = $myseq;
                 }
             } else {
                 $retarray[$id] = $residues;
@@ -347,13 +287,12 @@ class GenDBRepository {
         return $retarray;
 
 
-        
+
     }
-    
-    
+
 
     public function defaultLookup(string $chadotype, int $id) {
-        
+
         $select = $this->connection
             ->select('chado.'.$chadotype, 't')
             ->fields('t')
@@ -361,54 +300,21 @@ class GenDBRepository {
         return $select->execute()->fetch();
 
     }
-
     
-
     /**
-     * Load dbtng_example records joined with user records.
-     *
-     * DBTNG also helps processing queries that return several rows, providing the
-     * found objects in the same query execution call.
-     *
-     * This function queries the database using a JOIN between users table and the
-     * example entries, to provide the username that created the entry, and
-     * creates a table with the results, processing each row.
-     *
-     * SELECT
-     *  e.pid as pid, e.name as name, e.surname as surname, e.age as age
-     *  u.name as username
-     * FROM
-     *  {dbtng_example} e
-     * JOIN
-     *  users u ON e.uid = u.uid
-     * WHERE
-     *  e.name = 'John' AND e.age > 18
-     *
-     * @see Drupal\Core\Database\Connection::select()
-     * @see http://drupal.org/node/310075
-     */
-    public function advancedLoad() {
-        // Get a select query for our dbtng_example table. We supply an alias of e
-        // (for 'example').
-        $select = $this->connection->select('dbtng_example', 'e');
-        // Join the users table, so we can get the entry creator's username.
-        $select->join('users_field_data', 'u', 'e.uid = u.uid');
-        // Select these specific fields for the output.
-        $select->addField('e', 'pid');
-        $select->addField('u', 'name', 'username');
-        $select->addField('e', 'name');
-        $select->addField('e', 'surname');
-        $select->addField('e', 'age');
-        // Filter only persons named "John".
-        $select->condition('e.name', 'John');
-        // Filter only persons older than 18 years.
-        $select->condition('e.age', 18, '>');
-        // Make sure we only get items 0-49, for scalability reasons.
-        $select->range(0, 50);
+	 * Counts the number of feature entries in Chado DB,
+  */
+ 
+ public function countFeatureTypes() {
+     
+     
+     $sql = "SELECT type,count(type)  FROM chado.f_type
+         GROUP BY type ORDER BY type;";
+     
+     $query = \Drupal::database()->query($sql); 
+     return($query->fetchAll());
+     
+    }   
 
-        $entries = $select->execute()->fetchAll(\PDO::FETCH_ASSOC);
-
-        return $entries;
-    }
 
 }

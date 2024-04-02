@@ -6,23 +6,9 @@ use Drupal\gendb_lite\GenDBRepository;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Drupal\Core\Url;
 use Drupal\Core\Link;
+use Drupal\Core\Routing;
 use Drupal\Core\Form\FormBase;
 use Drupal\Core\Form\FormStateInterface;
-
-
-
-
-
-/**
-* Counts the number of gene entries in Chado DB, should be move to utility functions
-*/
-
- function gene_count() {
-  $sql = "SELECT COUNT(DISTINCT f.feature_id) FROM chado.feature AS f LEFT JOIN chado.f_type AS t ON f.type_id = t.type_id WHERE t.type = 'gene'";
-  $query = \Drupal::database()->query($sql); 
-  return($query->fetch()->count);
-}
-
 
 /**
  * Provides route responses for the Example module.
@@ -62,26 +48,59 @@ class GenDBController extends ControllerBase {
    *   A simple renderable array.
    */
   public function myPage() {
-    return [
-      '#markup' => 'Counting genes in Chado...</br> Found '. gene_count() .' genes.',
-    ];
+      $content=[];
+      $headers = ['Feature type', 'Count'];
+      $rows = [];
+      
+      $content['message'] =
+          ['#markup' => 'Number of features types in the Chado DB...</br>'];
+      $entries = $this->repository->countFeatureTypes();
+      foreach ($entries as $entry) {
+          // Sanitize each entry.
+          $entry = array_map('Drupal\Component\Utility\Html::escape', (array) $entry);
+          $rows[] = $entry;        
+      }
+      
+      $content['table'] =
+          [
+              '#type' => 'table',
+              '#header' => $headers,
+              '#rows' => $rows,
+              '#empty' => $this->t('No features found'),
+          ];
+      return $content;
   }
 
   public function featureList() {
-       $content = [];
 
-    $content['message'] = [
-      '#markup' => $this->t('Generate a list of all entries in the database. There is no filter in the query.'),
+      $content = [];
+      //Get parameter value while submitting filter form  
+	  $fname = \Drupal::request()->query->get('fname');
+   $funame = \Drupal::request()->query->get('funame');
+   $ftype = \Drupal::request()->query->get('ftype');
+
+   
+	
+	  //====load filter controller
+	  $content['form'] = $this->formBuilder()->getForm('Drupal\gendb_lite\Form\FeatureFilterForm');    
+
+       $content['message'] =
+           [
+      '#markup' => $this->t('Generate a list of all entries in the database.'),
     ];
 
     $rows = [];
     $headers = [
       [ 'data' => $this->t('Name') , 'field' => 'f.name'],
       [ 'data' => $this->t('Unique name'),'field' => 'f.uniquename'],
-       [ 'data' => $this->t('Feature type'), 'field' => 't.type']
+      [ 'data' => $this->t('Feature type'), 'field' => 't.type']
     ];
 
-    $entries = $this->repository->load([], $headers);
+    $entries = $this->repository->load(
+        ['f.name' => ['value' => $fname, 'operator' => 'contains'],
+        'f.uniquename' =>  ['value' => $funame, 'operator' => 'contains'],
+        't.type' => ['value'=>$ftype, 'operator' => 'LIKE' ]],
+        $headers,);
 
     foreach ($entries as $entry) {
       // Sanitize each entry.
@@ -116,12 +135,11 @@ class GenDBController extends ControllerBase {
 
   
   public function geneInfo(int $id) {
-
       $content = [];
-       $rows = [];
-    $headers = [
-      [ 'data' => $this->t('Name') , 'field' => 'f.name'],
-      [ 'data' => $this->t('Unique name'),'field' => 'f.uniquename'],
+      $rows = [];
+      $headers = [
+          [ 'data' => $this->t('Name') , 'field' => 'f.name'],
+          [ 'data' => $this->t('Unique name'),'field' => 'f.uniquename'],
       [ 'data' => $this->t('Feature type'), 'field' => 't.type'],
       
       [ 'data' => $this->t('Organism')],
@@ -140,7 +158,7 @@ class GenDBController extends ControllerBase {
         unset($entry['species']);
         unset($entry['organism_id']);
         unset($entry['residues']);
-        
+        unset($entry['feature_id']);
         $rows[] = $entry;
         
     
