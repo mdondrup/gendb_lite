@@ -42,7 +42,7 @@ class GenDBController extends ControllerBase {
  
       
   /** 
-   * Returns a simple welcome page. Counts the genes
+   * Returns a simple welcome page. Displays the number of different features per type.
    *
    * @return array
    *   A simple renderable array.
@@ -71,15 +71,15 @@ class GenDBController extends ControllerBase {
       return $content;
   }
 
-  public function featureList() {
-
+	public function featureList() {
+  
       $content = [];
       //Get parameter value while submitting filter form  
 	  $fname = \Drupal::request()->query->get('fname');
-   $funame = \Drupal::request()->query->get('funame');
+  	   $funame = \Drupal::request()->query->get('funame');
    $ftype = \Drupal::request()->query->get('ftype');
 
-   
+  
 	
 	  //====load filter controller
 	  $content['form'] = $this->formBuilder()->getForm('Drupal\gendb_lite\Form\FeatureFilterForm');    
@@ -132,6 +132,11 @@ class GenDBController extends ControllerBase {
   }
 
 
+  /**
+  * Display basig info and sequence for any feature (albeit the name) 
+  */
+
+
 
   
   public function geneInfo(int $id) {
@@ -145,7 +150,6 @@ class GenDBController extends ControllerBase {
       [ 'data' => $this->t('Organism')],
       ['feature_id']
     ];
-
       
       $content['#plain_text'] = 'Looking up gene_id ' . $id;
       $entry = $this->repository->getFeatureInfoById($id);
@@ -159,8 +163,7 @@ class GenDBController extends ControllerBase {
         unset($entry['organism_id']);
         unset($entry['residues']);
         unset($entry['feature_id']);
-        $rows[] = $entry;
-        
+        $rows[] = $entry;  
     
     $content['table'] = [
       '#type' => 'table',
@@ -189,20 +192,28 @@ class GenDBController extends ControllerBase {
       '#disabled' => 'disabled',
       '#value' => $residues,      
     ];
-     $form['sequence'] = [
+
+    $seqs = $this->repository->getSeq($id);
+
+    foreach ($seqs as $srcname => $myseq) {
+     $form['sequence_'.$srcname] = [
       '#type' => 'textarea',
-      '#title' => $this->t('Sequence from Alignment'),
-      
+      '#title' => $this->t('Sequence from Alignment against '. $srcname),      
       '#disabled' => 'disabled',
-      '#value' => var_export( $this->repository->getSeqRecursive($id), true),      
-    ];
+      '#value' => $myseq,      
+     ];
+    } 
     $content['form'] = $form;
     
     return $content;
       
   }
 
-  
+  /**
+  * A simple default controller method that should work with most chado tables.
+  * Lists all fields from the storage table for a given object_id.
+  *
+  */
 
 
   public function defaultController(string $chadotype, int $id) {

@@ -95,7 +95,7 @@ class GenDBRepository {
      * @code
      *   // SELECT * FROM {dbtng_example} WHERE uid = 0 AND name = 'John'
      *   $arguments = array(':name' => 'John', ':uid' => 0);
-     *   \Drupal::database()->select('dbtng_example')
+    *   \Drupal::database()->select('dbtng_example')
      *     ->fields('dbtng_example')
      *     ->where('uid = :uid AND name = :name', $arguments)
      *     ->execute();
@@ -177,6 +177,19 @@ class GenDBRepository {
         $select->condition('f.feature_id', $id);
         return $select->execute()->fetch();
     }
+
+    public function getGeneticCodeByOrganism(int $id, bool $mito = FALSE) {
+        $sql= "SELECT abbreviation, op.value, cvt.name FROM chado.organism o
+            INNER JOIN chado.organismprop op ON o.organism_id = op.organism_id
+            INNER JOIN chado.cvterm cvt ON op.type_id = cvt.cvterm_id
+            WHERE cvt.name = :code AND op.organism_id = :id";
+
+        $query = \Drupal::database()->query($sql, ['code' => ($mito) ? 'mitochondrial_genetic_code' : 'genetic_code' , 'id' => $id]); 
+        return($query->fetch()->value);
+        
+    }
+
+    
     
     /*
      * Table taken from: https://www.biophp.org/minitools/sequence_manipulation_and_data/
@@ -208,6 +221,117 @@ class GenDBRepository {
         return $seq;
     }
 
+    /**
+     * Found in BioPHP
+     * (https://www.biophp.org/minitools/dna_to_protein/) by joseba
+     *
+     */
+    
+    function translate_DNA_to_protein($seq,$genetic_code){
+
+        // $aminoacids is the array of aminoacids
+        $aminoacids=array("F","L","I","M","V","S","P","T","A","Y","*","H","Q","N","K","D","E","C","W","R","G","X");
+
+        // $triplets is the array containning the genetic codes
+        // Info has been extracted from http://www.ncbi.nlm.nih.gov/Taxonomy/Utils/wprintgc.cgi?mode
+
+        // Standard genetic code
+        $triplets[1]=array("(TTT |TTC )","(TTA |TTG |CT. )","(ATT |ATC |ATA )","(ATG )","(GT. )","(TC. |AGT |AGC )",
+                        "(CC. )","(AC. )","(GC. )","(TAT |TAC )","(TAA |TAG |TGA )","(CAT |CAC )",
+                        "(CAA |CAG )","(AAT |AAC )","(AAA |AAG )","(GAT |GAC )","(GAA |GAG )","(TGT |TGC )",
+                        "(TGG )","(CG. |AGA |AGG )","(GG. )","(\S\S\S )");
+        // Vertebrate Mitochondrial
+        $triplets[2]=array("(TTT |TTC )","(TTA |TTG |CT. )","(ATT |ATC |ATA )","(ATG )","(GT. )","(TC. |AGT |AGC )",
+                        "(CC. )","(AC. )","(GC. )","(TAT |TAC )","(TAA |TAG |AGA |AGG )","(CAT |CAC )",
+                        "(CAA |CAG )","(AAT |AAC )","(AAA |AAG )","(GAT |GAC )","(GAA |GAG )","(TGT |TGC )",
+                        "(TGG |TGA )","(CG. )","(GG. )","(\S\S\S )");
+        // Yeast Mitochondrial
+        $triplets[3]=array("(TTT |TTC )","(TTA |TTG )","(ATT |ATC )","(ATG |ATA )","(GT. )","(TC. |AGT |AGC )",
+                        "(CC. )","(AC. |CT. )","(GC. )","(TAT |TAC )","(TAA |TAG )","(CAT |CAC )",
+                        "(CAA |CAG )","(AAT |AAC )","(AAA |AAG )","(GAT |GAC )","(GAA |GAG )","(TGT |TGC )",
+                        "(TGG |TGA )","(CG. |AGA |AGG )","(GG. )","(\S\S\S )");
+        // Mold, Protozoan and Coelenterate Mitochondrial. Mycoplasma, Spiroplasma
+        $triplets[4]=array("(TTT |TTC )","(TTA |TTG |CT. )","(ATT |ATC |ATA )","(ATG )","(GT. )","(TC. |AGT |AGC )",
+                        "(CC. )","(AC. )","(GC. )","(TAT |TAC )","(TAA |TAG )","(CAT |CAC )",
+                        "(CAA |CAG )","(AAT |AAC )","(AAA |AAG )","(GAT |GAC )","(GAA |GAG )","(TGT |TGC )",
+                        "(TGG |TGA )","(CG. |AGA |AGG )","(GG. )","(\S\S\S )");
+        // Invertebrate Mitochondrial
+        $triplets[5]=array("(TTT |TTC )","(TTA |TTG |CT. )","(ATT |ATC )","(ATG |ATA )","(GT. )","(TC. |AG. )",
+                        "(CC. )","(AC. )","(GC. )","(TAT |TAC )","(TAA |TAG )","(CAT |CAC )",
+                        "(CAA |CAG )","(AAT |AAC )","(AAA |AAG )","(GAT |GAC )","(GAA |GAG )","(TGT |TGC )",
+                        "(TGG |TGA )","(CG. )","(GG. )","(\S\S\S )");
+        // Ciliate Nuclear; Dasycladacean Nuclear; Hexamita Nuclear
+        $triplets[6]=array("(TTT |TTC )","(TTA |TTG |CT. )","(ATT |ATC |ATA )","(ATG )","(GT. )","(TC. |AGT |AGC )",
+                        "(CC. )","(AC. )","(GC. )","(TAT |TAC )","(TGA )","(CAT |CAC )",
+                        "(CAA |CAG |TAA |TAG )","(AAT |AAC )","(AAA |AAG )","(GAT |GAC )","(GAA |GAG )","(TGT |TGC )",
+                        "(TGG )","(CG. |AGA |AGG )","(GG. )","(\S\S\S )");
+        // Echinoderm Mitochondrial
+        $triplets[9]=array("(TTT |TTC )","(TTA |TTG |CT. )","(ATT |ATC |ATA )","(ATG )","(GT. )","(TC. |AG. )",
+                        "(CC. )","(AC. )","(GC. )","(TAT |TAC )","(TAA |TAG )","(CAT |CAC )",
+                        "(CAA |CAG )","(AAA |AAT |AAC )","(AAG )","(GAT |GAC )","(GAA |GAG )","(TGT |TGC )",
+                        "(TGG |TGA )","(CG. )","(GG. )","(\S\S\S )");
+        // Euplotid Nuclear
+        $triplets[10]=array("(TTT |TTC )","(TTA |TTG |CT. )","(ATT |ATC |ATA )","(ATG )","(GT. )","(TC. |AGT |AGC )",
+                        "(CC. )","(AC. )","(GC. )","(TAT |TAC )","(TAA |TAG )","(CAT |CAC )",
+                        "(CAA |CAG )","(AAT |AAC )","(AAA |AAG )","(GAT |GAC )","(GAA |GAG )","(TGT |TGC |TGA )",
+                        "(TGG )","(CG. |AGA |AGG )","(GG. )","(\S\S\S )");
+        // Bacterial and Plant Plastid
+        $triplets[11]=array("(TTT |TTC )","(TTA |TTG |CT. )","(ATT |ATC |ATA )","(ATG )","(GT. )","(TC. |AGT |AGC )",
+                        "(CC. )","(AC. )","(GC. )","(TAT |TAC )","(TAA |TAG |TGA )","(CAT |CAC )",
+                        "(CAA |CAG )","(AAT |AAC )","(AAA |AAG )","(GAT |GAC )","(GAA |GAG )","(TGT |TGC )",
+                        "(TGG )","(CG. |AGA |AGG )","(GG. )","(\S\S\S )");
+        // Alternative Yeast Nuclear
+        $triplets[12]=array("(TTT |TTC )","(TTA |TTG |CTA |CTT |CTC )","(ATT |ATC |ATA )","(ATG )","(GT. )","(TC. |AGT |AGC |CTG )",
+                        "(CC. )","(AC. )","(GC. )","(TAT |TAC )","(TAA |TAG |TGA )","(CAT |CAC )",
+                        "(CAA |CAG )","(AAT |AAC )","(AAA |AAG )","(GAT |GAC )","(GAA |GAG )","(TGT |TGC )",
+                        "(TGG )","(CG. |AGA |AGG )","(GG. )","(\S\S\S )");
+        // Ascidian Mitochondrial
+        $triplets[13]=array("(TTT |TTC )","(TTA |TTG |CT. )","(ATT |ATC )","(ATG |ATA )","(GT. )","(TC. |AGT |AGC )",
+                        "(CC. )","(AC. )","(GC. )","(TAT |TAC )","(TAA |TAG )","(CAT |CAC )",
+                        "(CAA |CAG )","(AAT |AAC )","(AAA |AAG )","(GAT |GAC )","(GAA |GAG )","(TGT |TGC )",
+                        "(TGG |TGA )","(CG. )","(GG. |AGA |AGG )","(\S\S\S )");
+        // Flatworm Mitochondrial
+        $triplets[14]=array("(TTT |TTC )","(TTA |TTG |CT. )","(ATT |ATC |ATA )","(ATG )","(GT. )","(TC. |AG. )",
+                        "(CC. )","(AC. )","(GC. )","(TAT |TAC |TAA )","(TAG )","(CAT |CAC )",
+                        "(CAA |CAG )","(AAT |AAC |AAA )","(AAG )","(GAT |GAC )","(GAA |GAG )","(TGT |TGC )",
+                        "(TGG |TGA )","(CG. )","(GG. )","(\S\S\S )");
+        // Blepharisma Macronuclear
+        $triplets[15]=array("(TTT |TTC )","(TTA |TTG |CT. )","(ATT |ATC |ATA )","(ATG )","(GT. )","(TC. |AGT |AGC )",
+                        "(CC. )","(AC. )","(GC. )","(TAT |TAC )","(TAA |TGA )","(CAT |CAC )",
+                        "(CAA |CAG |TAG )","(AAT |AAC )","(AAA |AAG )","(GAT |GAC )","(GAA |GAG )","(TGT |TGC )",
+                        "(TGG )","(CG. |AGA |AGG )","(GG. )","(\S\S\S )");
+        // Chlorophycean Mitochondrial
+        $triplets[16]=array("(TTT |TTC )","(TTA |TTG |CT. |TAG )","(ATT |ATC |ATA )","(ATG )","(GT. )","(TC. |AGT |AGC )",
+                        "(CC. )","(AC. )","(GC. )","(TAT |TAC )","(TAA |TGA )","(CAT |CAC )",
+                        "(CAA |CAG )","(AAT |AAC )","(AAA |AAG )","(GAT |GAC )","(GAA |GAG )","(TGT |TGC )",
+                        "(TGG )","(CG. |AGA |AGG )","(GG. )","(\S\S\S )");
+        // Trematode Mitochondrial
+        $triplets[21]=array("(TTT |TTC )","(TTA |TTG |CT. )","(ATT |ATC )","(ATG |ATA )","(GT. )","(TC. |AG. )",
+                        "(CC. )","(AC. )","(GC. )","(TAT |TAC )","(TAA |TAG )","(CAT |CAC )",
+                        "(CAA |CAG )","(AAT |AAC |AAA )","(AAG )","(GAT |GAC )","(GAA |GAG )","(TGT |TGC )",
+                        "(TGG |TGA )","(CG. )","(GG. )","(\S\S\S )");
+        // Scenedesmus obliquus mitochondrial
+        $triplets[22]=array("(TTT |TTC )","(TTA |TTG |CT. |TAG )","(ATT |ATC |ATA )","(ATG )","(GT. )","(TCT |TCC |TCG |AGT |AGC )",
+                        "(CC. )","(AC. )","(GC. )","(TAT |TAC )","(TAA |TGA |TCA )","(CAT |CAC )",
+                        "(CAA |CAG )","(AAT |AAC )","(AAA |AAG )","(GAT |GAC )","(GAA |GAG )","(TGT |TGC )",
+                        "(TGG )","(CG. |AGA |AGG )","(GG. )","(\S\S\S )");
+        // Thraustochytrium mitochondrial code
+        $triplets[23]=array("(TTT |TTC )","(TTG |CT. )","(ATT |ATC |ATA )","(ATG )","(GT. )","(TC. |AGT |AGC )",
+                        "(CC. )","(AC. )","(GC. )","(TAT |TAC )","(TTA |TAA |TAG |TGA )","(CAT |CAC )",
+                        "(CAA |CAG )","(AAT |AAC )","(AAA |AAG )","(GAT |GAC )","(GAA |GAG )","(TGT |TGC )",
+                        "(TGG )","(CG. |AGA |AGG )","(GG. )","(\S\S\S )");
+        $seq = strtoupper($seq);
+        // place a space after each triplete in the sequence
+        $temp = chunk_split($seq,3,' ');
+
+        // replace triplets by corresponding amnoacid
+        $peptide = preg_replace ($triplets[$genetic_code], $aminoacids, $temp);
+
+        // return peptide sequence
+        return $peptide;
+}
+
+    
 
 
 
@@ -268,29 +392,62 @@ class GenDBRepository {
             return [$id => $residues];
         }
         // We need to get the sequence of the source feature, hope it has residues
+        // If the sequences were imported from GFF, the coordinates should always
+        // be given with respect to a landmark,
+        // so there shouldn't be the need to look for nested alignments
+        // In principle we simply bail out if the nesting is deeper, even though the
+        // DB schema allows for it
         $retarray = [];
+        // First, check what kind of feature we have
+        $select = $this->connection->select('chado.f_type', 'ft')
+            ->fields('ft', ['type'])->condition('ft.feature_id', $id);
+        $type = $select->execute()->fetch()->type;
         foreach ($entries as $entry) {
-
             if ($entry->srcfeature_id) {
                 $srcseqs = $this->getSeqRecursive($entry->srcfeature_id);
                 // splice the sequences, one by one
                 foreach ($srcseqs as $sid => $sseq) {
                     $myseq = $this->spliceSeq($sseq, $id, $sid);
+                    // check if we need to translate the sequence
+                    // for a standard gff import, checking if this is a polypeptide should be ok
+                    // however, there might be cases where this is not sufficient 
+                    if ($type == 'polypeptide') {
+                        // in principle, we need to infer the genetic code from the organism,
+                        // however, this information is not stored in the organsim table
+                        
+                        $gcode = $this->getGeneticCodeByOrganism($this->defaultLookup('feature', $id)->organism_id);
+                        $myseq = $this->translate_DNA_to_protein($myseq, $gcode); 
+                    }
                     $retarray[$sid] = $myseq;
                 }
             } else {
                 $retarray[$id] = $residues;
-
             }
         }
-
         return $retarray;
-
-
-
     }
 
+    /**
+    * Do some postprocessing of the array
+    * Replaces the id with the uname, and removes the entry if only residues were retrieved
+    */
+    public function getSeq(int $id) {
+        $seqArr = $this->getSeqRecursive($id);
+        $out = [];
+        foreach ($seqArr as $sid => $value) {
+            if ($id != $sid) {
+                $uname = $this->defaultLookup('feature', $sid)->uniquename;
+                
+                
+                $out[$uname] = $value;
+            }
+        }
+        return $out;
+    }
 
+    
+
+    
     public function defaultLookup(string $chadotype, int $id) {
 
         $select = $this->connection
