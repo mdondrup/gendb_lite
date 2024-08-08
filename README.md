@@ -3,4 +3,10 @@ A simplistic  module for genomics data
 
 - Display gene information from Chado
 - Test sequence retrieval and create custom views on Chado content.
-- Experiment with Drupal modules
+- Experiment with Drupal development
+- Requires a populated Chado schema (by Tripal)
+
+# Installation
+
+- place this module's folder in Drupals module directory
+- activate the module
