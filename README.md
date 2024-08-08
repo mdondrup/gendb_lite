@@ -8,5 +8,5 @@ A simplistic  module for genomics data
 
 # Installation
 
-- place this module's folder in Drupals module directory
+- place this module's folder in Drupal's module directory
 - activate the module
