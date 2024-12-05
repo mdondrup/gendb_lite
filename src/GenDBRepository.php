@@ -377,8 +377,8 @@ class GenDBRepository {
         $select->addField('f', 'residues');
         $select->condition('f.feature_id', $id);
         $entry = $select->execute()->fetchAssoc();
-	print ("Done getting entry..\n");	
-        var_dump($entry);
+	drupal_set_message(t('Finished parsing entry '.$id), 'error');
+
         $residues = $entry['residues'];
         // Check if this feature has a featureloc entry
         $select = $this->connection
