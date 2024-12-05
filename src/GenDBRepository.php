@@ -377,7 +377,8 @@ class GenDBRepository {
         $select->addField('f', 'residues');
         $select->condition('f.feature_id', $id);
         $entry = $select->execute()->fetchAssoc();
-        #var_dump($entry);
+	print ("Done getting entry..\n");	
+        var_dump($entry);
         $residues = $entry['residues'];
         // Check if this feature has a featureloc entry
         $select = $this->connection
