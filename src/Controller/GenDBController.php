@@ -193,7 +193,7 @@ class GenDBController extends ControllerBase {
       '#value' => $residues,      
     ];
 
-   # $seqs = $this->repository->getSeq($id);
+    $seqs = $this->repository->getSeq($id);
 
     #foreach ($seqs as $srcname => $myseq) {
     # $form['sequence_'.$srcname] = [
