@@ -228,7 +228,7 @@ class GenDBRepository {
      */
     
     function translate_DNA_to_protein($seq,$genetic_code){
-
+        if (empty($seq) or $seq == '') return '';
         // $aminoacids is the array of aminoacids
         $aminoacids=array("F","L","I","M","V","S","P","T","A","Y","*","H","Q","N","K","D","E","C","W","R","G","X");
 
@@ -325,7 +325,7 @@ class GenDBRepository {
         $temp = chunk_split($seq,3,' ');
 
         // replace triplets by corresponding amnoacid
-        $peptide = preg_replace ($triplets[$genetic_code], $aminoacids, $temp);
+        $peptide = preg_replace (array($triplets[$genetic_code]), $aminoacids, $temp);
 
         // return peptide sequence
         return $peptide;
@@ -365,20 +365,20 @@ class GenDBRepository {
 
     }
 
-
     /**
      * Retrieve the sequence recursively from the source feature
      *
      **/
     public function getSeqRecursive(int $id) {
-        // get the residues, if any
-        $select = $this->connection
+	    // get the residues, if any
+	error_log("getSeqRecursive: Looking for feature ". $id);
+	$select = $this->connection
             ->select('chado.feature', 'f');
         $select->addField('f', 'residues');
         $select->condition('f.feature_id', $id);
         $entry = $select->execute()->fetchAssoc();
-	drupal_set_message(t('Finished parsing entry '.$id), 'error');
-
+	\Drupal::messenger()->addWarning(t('Finished parsing entry..'));
+	error_log('finished getting entry');
         $residues = $entry['residues'];
         // Check if this feature has a featureloc entry
         $select = $this->connection
@@ -387,10 +387,22 @@ class GenDBRepository {
         $select->condition('l.feature_id', $id)->distinct()
         ->orderBy('l.srcfeature_id');
         $entries =  $select->execute()->fetchAll();
-        // if there are no sourcefeatures, we are done and can return the residues
-        if (count($entries) === 0) {
-            // list is empty.
-            return [$id => $residues];
+	// if there are no sourcefeatures, we are done and can return the residues
+	// some source features could have their own id as source
+	//
+	error_log("found ".count($entries). " srcfeatures");
+
+	    if ($entry->srcfeature_id == $id) {
+		error_log("Feature $id has itself as srcfeature!");
+	    }
+	    if (empty($residues) or $residues == '' ) {
+		error_log("Empty residues for feature $id");    
+	    }
+	    error_log("returning residues: ". $residues);
+	    
+      if (count($entries) == 0 or $entries[0]->srcfeature_id == $id)  {
+        // list is empty.
+	    return [$id => $residues];
         }
         // We need to get the sequence of the source feature, hope it has residues
         // If the sequences were imported from GFF, the coordinates should always
@@ -403,8 +415,9 @@ class GenDBRepository {
         $select = $this->connection->select('chado.f_type', 'ft')
             ->fields('ft', ['type'])->condition('ft.feature_id', $id);
         $type = $select->execute()->fetch()->type;
-        foreach ($entries as $entry) {
-            if ($entry->srcfeature_id) {
+	foreach ($entries as $entry) {
+		error_log("looking up Srcfeatureid: ".$entry->srcfeature_id);
+            if ($entry->srcfeature_id  and $entry->srcfeature_id != $id ) {
                 $srcseqs = $this->getSeqRecursive($entry->srcfeature_id);
                 // splice the sequences, one by one
                 foreach ($srcseqs as $sid => $sseq) {
@@ -424,7 +437,8 @@ class GenDBRepository {
             } else {
                 $retarray[$id] = $residues;
             }
-        }
+	}
+	//error_log(var_dump($retarray));
         return $retarray;
     }
 

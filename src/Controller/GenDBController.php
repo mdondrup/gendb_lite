@@ -10,6 +10,11 @@ use Drupal\Core\Routing;
 use Drupal\Core\Form\FormBase;
 use Drupal\Core\Form\FormStateInterface;
 
+ini_set('display_errors', 1);
+ini_set('display_startup_errors', 1);
+error_reporting(E_ALL);
+
+
 /**
  * Provides route responses for the Example module.
  */
@@ -39,7 +44,7 @@ class GenDBController extends ControllerBase {
   public function __construct(GenDBRepository $repository) {
     $this->repository = $repository;
   }
- 
+
       
   /** 
    * Returns a simple welcome page. Displays the number of different features per type.
@@ -136,7 +141,10 @@ class GenDBController extends ControllerBase {
   * Display basig info and sequence for any feature (albeit the name) 
   */
 
-
+  public static function escape(string $s) {
+	 if (empty($s)) return 'NULL';
+	 return htmlspecialchars($s, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+ }
 
   
   public function geneInfo(int $id) {
@@ -154,7 +162,7 @@ class GenDBController extends ControllerBase {
       $content['#plain_text'] = 'Looking up gene_id ' . $id;
       $entry = $this->repository->getFeatureInfoById($id);
       // Sanitize each entry.
-        $entry = array_map('Drupal\Component\Utility\Html::escape', (array) $entry);
+        $entry = array_map($this->escape, (array) $entry);
         $url = Url::fromRoute('gendb_lite.default', ['chadotype' => 'organism', 'id' => $entry['organism_id']]);
         $residues = $entry['residues'];       
         $entry['organism'] = Link::fromTextAndUrl($entry['genus'].' '. $entry['species'], $url);
@@ -195,14 +203,14 @@ class GenDBController extends ControllerBase {
 
     $seqs = $this->repository->getSeq($id);
 
-    #foreach ($seqs as $srcname => $myseq) {
-    # $form['sequence_'.$srcname] = [
-    #  '#type' => 'textarea',
-    #  '#title' => $this->t('Sequence from Alignment against '. $srcname),      
-    #  '#disabled' => 'disabled',
-    #  '#value' => $myseq,      
-    # ];
-    #} 
+    foreach ($seqs as $srcname => $myseq) {
+     $form['sequence_'.$srcname] = [
+      '#type' => 'textarea',
+      '#title' => $this->t('Sequence from Alignment against '. $srcname),      
+      '#disabled' => 'disabled',
+      '#value' => $myseq,      
+     ];
+    } 
     $content['form'] = $form;
     
     return $content;
@@ -223,10 +231,9 @@ class GenDBController extends ControllerBase {
       $content['#markup'] = 'Looking up Chado content: '. $chadotype . " ". $id;
       $entry = $this->repository->defaultLookup($chadotype, $id);
 
-            $entry = array_map('Drupal\Component\Utility\Html::escape', (array) $entry);
+            $entry = array_map($this->escape, (array) $entry);
 
       $rows[] = $entry;
-      #$content['#plain_text'] = var_dump($entry);
 
       $content['table'] = [
           '#type' => 'table',
